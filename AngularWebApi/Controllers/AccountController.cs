@@ -24,54 +24,75 @@ namespace AngularWebApi.Controllers
         [HttpPost]
         public IdentityResult Register(AccountModel model)
         {
-            var userStore = new UserStore<ApplicationUser>(new ApplicationDbContext());
-            var manager = new UserManager<ApplicationUser>(userStore);
-            var user = new ApplicationUser() { UserName = model.UserName, Email = model.Email };
-            user.FirstName = model.FirstName;
-            user.LastName = model.LastName;
-            manager.PasswordValidator = new PasswordValidator
+           
+            
+            try
             {
-                RequiredLength = 3
-            };
-            IdentityResult result = manager.Create(user, model.Password);
-            return result;
+                var userStore = new UserStore<ApplicationUser>(new ApplicationDbContext());
+                var manager = new UserManager<ApplicationUser>(userStore);
+                var user = new ApplicationUser() { UserName = model.UserName, Email = model.Email };
+                user.FirstName = model.FirstName;
+                user.LastName = model.LastName;
+                manager.PasswordValidator = new PasswordValidator
+                {
+                    RequiredLength = 3
+                };
+                IdentityResult result = manager.Create(user, model.Password);
+                return result;
+            }
+            catch(Exception ex)
+            {
+                var error = ex.ToString();
+            }
+            return null;
+            
+               
+            
         }
 
         [Route("api/User/GetUser")]
         [HttpPost]
         public ApplicationUser GetUser(AccountModel model)
         {
-            var userRoles = new List<ApplicationUser>();
-            var context = new ApplicationDbContext();
-            var userStore = new UserStore<ApplicationUser>(context);
-            var userManager = new UserManager<ApplicationUser>(userStore);
-            var newdb = new ApplicationDbContext();
-            try
+            if (model.UserName != "" && model.Password != "" || model.Password == "" || model.UserName == "")
             {
-                foreach (var i in userStore.Users)
+                var userRoles = new List<ApplicationUser>();
+                var context = new ApplicationDbContext();
+                var userStore = new UserStore<ApplicationUser>(context);
+                var userManager = new UserManager<ApplicationUser>(userStore);
+                var newdb = new ApplicationDbContext();
+                try
                 {
-                    userRoles.Add(i);
+                    foreach (var i in userStore.Users)
+                    {
+                        userRoles.Add(i);
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    var error = ex.ToString();
                 }
 
+
+                var p = new PasswordHasher();
+
+                var getCredentials = userRoles.FirstOrDefault<ApplicationUser>(a => a.UserName == model.UserName);
+                if (getCredentials == null) return null;
+                var getPassword = getCredentials.PasswordHash;
+
+                PasswordVerificationResult verification = p.VerifyHashedPassword(getPassword, model.Password);
+
+
+                if (getCredentials != null && verification != PasswordVerificationResult.Failed)
+                    return getCredentials;
+                else
+                    return null;
             }
-            catch (Exception ex)
-            {
-                var error = ex.ToString();
-            }
-
-
-            var p = new PasswordHasher();
-
-            var getCredentials = userRoles.FirstOrDefault<ApplicationUser>(a => a.UserName == model.UserName);
-            var getPassword = getCredentials.PasswordHash;
-
-            PasswordVerificationResult verification = p.VerifyHashedPassword(getPassword, model.Password);
-           
-           
-            if (getCredentials != null && verification != PasswordVerificationResult.Failed)
-                return getCredentials;
             else
+            {
                 return null;
+            }
         }
 
       
